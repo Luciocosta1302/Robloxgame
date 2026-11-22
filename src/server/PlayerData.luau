@@ -32,6 +32,7 @@ type Data = {
 	questsPicked: { string },
 	questsBaseline: { [string]: number },
 	questsClaimed: { [string]: true },
+	rebirths: number,
 }
 
 local cache: { [Player]: Data } = {}
@@ -61,6 +62,7 @@ local function defaults(): Data
 		questsPicked = {},
 		questsBaseline = {},
 		questsClaimed = {},
+		rebirths = 0,
 	}
 end
 
@@ -153,6 +155,7 @@ local function merge(saved: any): Data
 			end
 		end
 	end
+	data.rebirths = tonumber(saved.rebirths) or 0
 	return data
 end
 
@@ -211,6 +214,7 @@ local function load(player: Player)
 	local data = merge(saved)
 	cache[player] = data
 	setupLeaderstats(player, data)
+	player:SetAttribute("Rebirths", data.rebirths)
 	fireCoins(player)
 	fireData(player)
 end
@@ -263,12 +267,49 @@ function PlayerData.addCoinsRaw(player: Player, amount: number)
 	fireCoins(player)
 end
 
--- Aplica multiplicador VIP para ganhos de gameplay (não para compras na loja).
+-- Aplica multiplicador VIP + rebirth para ganhos de gameplay (não loja).
 function PlayerData.addCoins(player: Player, amount: number)
-	if amount > 0 and vipCache[player] then
-		amount = math.floor(amount * Config.VIP_COIN_MULTIPLIER + 0.5)
+	if amount > 0 then
+		local mult = 1
+		if vipCache[player] then
+			mult = mult * Config.VIP_COIN_MULTIPLIER
+		end
+		local data = cache[player]
+		if data and data.rebirths > 0 then
+			mult = mult * (1 + data.rebirths * Config.REBIRTH_COIN_BONUS_PER_LEVEL)
+		end
+		amount = math.floor(amount * mult + 0.5)
 	end
 	PlayerData.addCoinsRaw(player, amount)
+end
+
+function PlayerData.getRebirths(player: Player): number
+	local data = cache[player]
+	return (data and data.rebirths) or 0
+end
+
+-- Executa um rebirth se o jogador atende aos requisitos. Retorna (ok, msg).
+function PlayerData.tryRebirth(player: Player): (boolean, string)
+	local data = cache[player]
+	if not data then
+		return false, "Dados do jogador ainda não carregaram."
+	end
+	if data.wins < Config.REBIRTH_WINS_REQUIRED then
+		return false, ("Precisa de %d vitórias (tem %d)."):format(Config.REBIRTH_WINS_REQUIRED, data.wins)
+	end
+	data.rebirths += 1
+	data.coins = 0
+	data.wins = 0
+	syncLeaderstatCoins(player)
+	local stats = player:FindFirstChild("leaderstats")
+	local winsValue = stats and stats:FindFirstChild("Vitórias")
+	if winsValue then
+		winsValue.Value = 0
+	end
+	fireCoins(player)
+	fireData(player)
+	player:SetAttribute("Rebirths", data.rebirths)
+	return true, ("+25% permanente! Nível de rebirth: %d"):format(data.rebirths)
 end
 
 function PlayerData.spendCoins(player: Player, amount: number): boolean

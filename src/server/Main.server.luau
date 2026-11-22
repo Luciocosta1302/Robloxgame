@@ -22,6 +22,7 @@ local Badges = require(script.Parent.Badges)
 local Codes = require(script.Parent.Codes)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Quests = require(script.Parent.Quests)
+local Rebirth = require(script.Parent.Rebirth)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -45,6 +46,7 @@ Badges.init(remotes)
 Codes.init(remotes)
 Leaderboard.init()
 Quests.init(remotes)
+Rebirth.init(remotes)
 
 -- O Leaderboard atualiza o mural do lobby (SurfaceGui criado no MapBuilder)
 local muralPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("VictoryMural")

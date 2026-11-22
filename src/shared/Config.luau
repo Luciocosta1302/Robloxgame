@@ -132,7 +132,21 @@ Config.COSMETICS = {
 	{ id = "titulo_lenda",       name = "Título: LENDA",         price = 2500, kind = "title",     rarity = "lendário", payload = { text = "LENDA",     color = Color3.fromRGB(255, 220, 80) } },
 	{ id = "titulo_tombo",       name = "Título: CAI-CAI",       price = 400,  kind = "title",     rarity = "comum",    payload = { text = "CAI-CAI",   color = Color3.fromRGB(180, 180, 180) } },
 	{ id = "titulo_fritador",    name = "Título: FRITADOR",      price = 1000, kind = "title",     rarity = "raro",     payload = { text = "FRITADOR",  color = Color3.fromRGB(255, 120, 60) } },
+
+	-- Pets (seguem o jogador. Puramente cosmético, atravessam parts.)
+	{ id = "pet_batatinha",      name = "Pet: Batatinha",        price = 1200, kind = "pet",       rarity = "raro",     payload = { color = Color3.fromRGB(230, 180, 90), size = 1.4, shape = "Ball", material = "Sand" } },
+	{ id = "pet_cubo_neon",      name = "Pet: Cubo Neon",        price = 1800, kind = "pet",       rarity = "épico",    payload = { color = Color3.fromRGB(120, 200, 255), size = 1.3, shape = "Block", material = "Neon", fire = false, light = true } },
+	{ id = "pet_meteoro",        name = "Pet: Meteoro",          price = 2600, kind = "pet",       rarity = "lendário", payload = { color = Color3.fromRGB(255, 80, 20),   size = 1.5, shape = "Ball",  material = "CorrodedMetal", fire = true, light = true } },
 }
+
+-- ============================================================
+-- Rebirth. Reseta moedas + vitórias em troca de +25% multiplicador PERMANENTE
+-- por rebirth. Também soma ao VIP_COIN_MULTIPLIER se tiver VIP.
+-- Primeiro rebirth exige REBIRTH_WINS_REQUIRED vitórias.
+-- ============================================================
+Config.REBIRTH_WINS_REQUIRED = 25
+Config.REBIRTH_COIN_BONUS_PER_LEVEL = 0.25
+Config.REBIRTH_TITLE_COLOR = Color3.fromRGB(255, 120, 200)
 
 -- ============================================================
 -- Animações — crie em create.roblox.com/dashboard/creations → Animations

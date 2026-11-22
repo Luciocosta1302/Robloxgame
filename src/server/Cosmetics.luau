@@ -163,6 +163,95 @@ local function applyTitle(character: Model, payload, isVIP: boolean)
 	label.Parent = billboard
 end
 
+local function applyPet(character: Model, payload)
+	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not root then
+		return
+	end
+
+	-- limpa pet anterior (seja do character seja de uma Folder solta)
+	for _, child in character:GetChildren() do
+		if child.Name == "CosmeticPet" then
+			child:Destroy()
+		end
+	end
+	local oldFolder = workspace:FindFirstChild("CosmeticPets")
+	if oldFolder then
+		local existing = oldFolder:FindFirstChild("Pet_" .. character.Name)
+		if existing then
+			existing:Destroy()
+		end
+	else
+		oldFolder = Instance.new("Folder")
+		oldFolder.Name = "CosmeticPets"
+		oldFolder.Parent = workspace
+	end
+
+	local pet = Instance.new("Part")
+	pet.Name = "Pet_" .. character.Name
+	pet.Size = Vector3.new(payload.size or 1.2, payload.size or 1.2, payload.size or 1.2)
+	pet.Shape = (payload.shape == "Block") and Enum.PartType.Block or Enum.PartType.Ball
+	pet.Color = payload.color or Color3.new(1, 1, 1)
+	pet.Material = (payload.material and Enum.Material[payload.material]) or Enum.Material.SmoothPlastic
+	pet.CanCollide = false
+	pet.Massless = true
+	pet.CollisionGroup = "Default"
+	pet.TopSurface = Enum.SurfaceType.Smooth
+	pet.BottomSurface = Enum.SurfaceType.Smooth
+	pet.CFrame = root.CFrame * CFrame.new(3, 1, 0)
+	pet.Parent = oldFolder
+
+	-- Marca referência no personagem pra limpeza futura via clearNamed
+	local marker = Instance.new("ObjectValue")
+	marker.Name = "CosmeticPet"
+	marker.Value = pet
+	marker.Parent = character
+
+	local a0 = Instance.new("Attachment")
+	a0.Name = "CosmeticPetAnchor"
+	a0.Parent = root
+	a0.Position = Vector3.new(-3.5, 0.5, 2)
+	local a1 = Instance.new("Attachment")
+	a1.Parent = pet
+
+	local align = Instance.new("AlignPosition")
+	align.Attachment0 = a1
+	align.Attachment1 = a0
+	align.MaxForce = 5e4
+	align.Responsiveness = 20
+	align.RigidityEnabled = false
+	align.Parent = pet
+
+	local orient = Instance.new("AlignOrientation")
+	orient.Attachment0 = a1
+	orient.Attachment1 = a0
+	orient.MaxTorque = 5e4
+	orient.Responsiveness = 10
+	orient.RigidityEnabled = false
+	orient.Parent = pet
+
+	if payload.fire then
+		local fire = Instance.new("Fire")
+		fire.Size = 3
+		fire.Parent = pet
+	end
+	if payload.light then
+		local light = Instance.new("PointLight")
+		light.Color = payload.color or Color3.fromRGB(255, 220, 80)
+		light.Range = 8
+		light.Brightness = 1.5
+		light.Parent = pet
+	end
+
+	-- Autodestruição quando o personagem sumir (morreu, deixou o servidor)
+	character.AncestryChanged:Connect(function(_, parent)
+		if not parent then
+			pet:Destroy()
+			marker:Destroy()
+		end
+	end)
+end
+
 local function applyVIPBody(character: Model)
 	-- Efeito dourado nos próprios membros do VIP (só visual)
 	clearNamed(character, "CosmeticVIP")
@@ -185,7 +274,7 @@ end
 
 function Cosmetics.applyToCharacter(player: Player, character: Model, hasVIP: boolean)
 	-- limpa anteriores
-	for _, name in { "CosmeticTrail", "CosmeticAura", "CosmeticHat", "CosmeticTitle", "CosmeticVIP" } do
+	for _, name in { "CosmeticTrail", "CosmeticAura", "CosmeticHat", "CosmeticTitle", "CosmeticVIP", "CosmeticPet" } do
 		clearNamed(character, name)
 	end
 	local root = character:FindFirstChild("HumanoidRootPart")
@@ -210,6 +299,9 @@ function Cosmetics.applyToCharacter(player: Player, character: Model, hasVIP: bo
 	end)
 	apply("hat", function(c, p)
 		applyHat(c, p)
+	end)
+	apply("pet", function(c, p)
+		applyPet(c, p)
 	end)
 	local titlePayload = apply("title", function(c, p)
 		applyTitle(c, p, hasVIP)

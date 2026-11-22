@@ -14,6 +14,7 @@ local VALID_KINDS = {
 	hat = true,
 	title = true,
 	emote = true,
+	pet = true,
 }
 
 local itemById: { [string]: any } = {}
