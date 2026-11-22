@@ -20,6 +20,7 @@ local Analytics = require(script.Parent.Analytics)
 local Referrals = require(script.Parent.Referrals)
 local Badges = require(script.Parent.Badges)
 local Codes = require(script.Parent.Codes)
+local Leaderboard = require(script.Parent.Leaderboard)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -41,6 +42,16 @@ Analytics.init()
 Referrals.init(remotes)
 Badges.init(remotes)
 Codes.init(remotes)
+Leaderboard.init()
+
+-- O Leaderboard atualiza o mural do lobby (SurfaceGui criado no MapBuilder)
+local muralPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("VictoryMural")
+if muralPart then
+	local muralGui = muralPart:FindFirstChild("MuralGui")
+	if muralGui then
+		Leaderboard.bindMural(muralGui:FindFirstChild("List"))
+	end
+end
 
 -- Easter egg: tocar na SecretPotato do lobby concede a badge SECRET
 local secretPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("SecretPotato")
@@ -76,6 +87,8 @@ local holder: Player? = nil
 local bomb: BasePart? = nil
 local lastPass = 0
 local roundActive = false
+local roundStartClock = 0
+local shrinkNoticeGiven = false
 
 local POTATO_COLOR = Color3.fromRGB(181, 130, 70)
 local DANGER_COLOR = Color3.fromRGB(255, 40, 40)
@@ -351,6 +364,18 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
+	-- Arena encolhendo
+	local elapsed = os.clock() - roundStartClock
+	local radius = Config.ARENA_RADIUS
+	if elapsed > Config.SHRINK_START then
+		radius = math.max(Config.SHRINK_MIN_RADIUS, Config.ARENA_RADIUS - (elapsed - Config.SHRINK_START) * Config.SHRINK_RATE)
+		if not shrinkNoticeGiven then
+			shrinkNoticeGiven = true
+			notifyAll("⚠️ A ARENA ESTÁ ENCOLHENDO!")
+		end
+	end
+	ReplicatedStorage:SetAttribute("ArenaRadius", radius)
+
 	for player in alive do
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -359,6 +384,14 @@ RunService.Heartbeat:Connect(function()
 			eliminate(player, "saiu da arena")
 		elseif root.Position.Y < Config.FALL_Y then
 			eliminate(player, "caiu da arena! 😵")
+		else
+			local flat = Vector3.new(root.Position.X - Config.ARENA_CENTER.X, 0, root.Position.Z - Config.ARENA_CENTER.Z)
+			if flat.Magnitude > radius then
+				-- fling pra fora pra dar visual de "foi ejetado"
+				local outward = flat.Unit * 40 + Vector3.new(0, 50, 0)
+				Combat.knock(player, outward, true)
+				eliminate(player, "foi ejetado da arena! 💨")
+			end
 		end
 	end
 
@@ -447,6 +480,9 @@ local function runRound()
 	end
 
 	roundActive = true
+	roundStartClock = os.clock()
+	shrinkNoticeGiven = false
+	ReplicatedStorage:SetAttribute("ArenaRadius", Config.ARENA_RADIUS)
 	setStatus("PREPARA... 🥔")
 	task.wait(3)
 
@@ -500,6 +536,7 @@ local function runRound()
 		PlayerData.addWin(winner)
 		Analytics.step(winner, "first_win")
 		Badges.onWin(winner)
+		Leaderboard.recordWin(winner)
 		setStatus("🏆 " .. winner.DisplayName .. " venceu!")
 		notifyAll("🏆 " .. winner.DisplayName .. " sobreviveu à batata! +" .. Config.COINS_WIN .. " moedas")
 		if winner.Character then

@@ -41,6 +41,16 @@ Config.LOBBY_CENTER = Vector3.new(0, 0, 0)
 Config.ARENA_CENTER = Vector3.new(0, 0, 300)
 Config.ARENA_RADIUS = 70
 
+-- Arena encolhendo (CLAUDE.md §1). Começa depois de SHRINK_START segundos de
+-- rodada e diminui SHRINK_RATE studs/segundo até SHRINK_MIN_RADIUS.
+Config.SHRINK_START = 25
+Config.SHRINK_RATE = 2.2
+Config.SHRINK_MIN_RADIUS = 18
+
+-- Leaderboard global
+Config.LEADERBOARD_SIZE = 10
+Config.LEADERBOARD_REFRESH = 90 -- segundos
+
 -- ============================================================
 -- Monetização — TODOS os IDs ficam 0 até você criar no Creator Hub.
 -- Nunca invente IDs. Siga as instruções do fim deste arquivo.

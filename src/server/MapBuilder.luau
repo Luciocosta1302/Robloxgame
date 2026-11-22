@@ -99,6 +99,64 @@ local function buildLobby(map: Folder)
 		Parent = map,
 	})
 	secret.CanCollide = false
+
+	-- Mural de vitórias (top 10 global). O servidor de leaderboard replica
+	-- em ReplicatedStorage.LeaderboardTop; um script no cliente atualiza este
+	-- SurfaceGui lendo de lá.
+	local mural = part({
+		Name = "VictoryMural",
+		Size = Vector3.new(26, 32, 1),
+		CFrame = CFrame.new(c + Vector3.new(50, 16, -20)) * CFrame.Angles(0, math.rad(-90), 0),
+		Color = Color3.fromRGB(40, 40, 60),
+		Material = Enum.Material.Metal,
+		Parent = map,
+	})
+
+	local muralGui = Instance.new("SurfaceGui")
+	muralGui.Name = "MuralGui"
+	muralGui.Face = Enum.NormalId.Back
+	muralGui.CanvasSize = Vector2.new(520, 640)
+	muralGui.Parent = mural
+
+	local header = Instance.new("TextLabel")
+	header.Size = UDim2.new(1, 0, 0, 56)
+	header.BackgroundTransparency = 1
+	header.Font = Enum.Font.FredokaOne
+	header.TextColor3 = Color3.fromRGB(255, 220, 80)
+	header.TextScaled = true
+	header.Text = "🏆 TOP 10 VITÓRIAS"
+	header.Parent = muralGui
+
+	local list = Instance.new("Frame")
+	list.Name = "List"
+	list.Position = UDim2.new(0, 10, 0, 60)
+	list.Size = UDim2.new(1, -20, 1, -70)
+	list.BackgroundTransparency = 1
+	list.Parent = muralGui
+
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Vertical
+	layout.Padding = UDim.new(0, 4)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = list
+
+	for i = 1, 10 do
+		local row = Instance.new("TextLabel")
+		row.Name = "Row" .. i
+		row.LayoutOrder = i
+		row.Size = UDim2.new(1, 0, 0, 48)
+		row.BackgroundColor3 = Color3.fromRGB(28, 28, 44)
+		row.BackgroundTransparency = 0.2
+		row.Font = Enum.Font.FredokaOne
+		row.TextColor3 = Color3.new(1, 1, 1)
+		row.TextScaled = true
+		row.TextXAlignment = Enum.TextXAlignment.Left
+		row.Text = ("  %d. —"):format(i)
+		row.Parent = list
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = row
+	end
 end
 
 -- ============================================================

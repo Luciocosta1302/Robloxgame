@@ -4,7 +4,9 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local SoundPlay = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SoundPlay"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local SoundPlay = require(Shared:WaitForChild("SoundPlay"))
+local Config = require(Shared:WaitForChild("Config"))
 
 local function make(className: string, props, parent: Instance?)
 	local item = Instance.new(className)
@@ -91,6 +93,16 @@ textLabel({
 	Size = UDim2.new(0, 220, 0, 30),
 	BackgroundTransparency = 0.6,
 	Text = "Q / botão = EMPURRA",
+}, gui)
+
+local shrinkBadge = textLabel({
+	Name = "ShrinkBadge",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 60),
+	Size = UDim2.new(0, 230, 0, 30),
+	BackgroundColor3 = Color3.fromRGB(180, 30, 30),
+	Text = "⚠️ ARENA ENCOLHENDO",
+	Visible = false,
 }, gui)
 
 -- Barra lateral com botões
@@ -202,6 +214,16 @@ RunService.RenderStepped:Connect(function()
 		local pulse = math.abs(math.sin(os.clock() * 6))
 		warning.BackgroundTransparency = 0.1 + pulse * 0.4
 		warning.Rotation = math.sin(os.clock() * 20) * 2
+	end
+	-- arena encolhendo: mostra quando o raio atual é menor que o original
+	local radius = ReplicatedStorage:GetAttribute("ArenaRadius")
+	if type(radius) == "number" and radius < Config.ARENA_RADIUS - 0.1 then
+		shrinkBadge.Visible = true
+		shrinkBadge.Text = ("⚠️ ARENA: %dm"):format(math.floor(radius))
+		local pulse = math.abs(math.sin(os.clock() * 5))
+		shrinkBadge.BackgroundTransparency = 0.1 + pulse * 0.3
+	else
+		shrinkBadge.Visible = false
 	end
 end)
 
