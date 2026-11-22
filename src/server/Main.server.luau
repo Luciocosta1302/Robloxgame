@@ -24,7 +24,7 @@ local Leaderboard = require(script.Parent.Leaderboard)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
-for _, name in { "Dash", "Ragdoll", "Notify" } do
+for _, name in { "Dash", "Ragdoll", "Notify", "ShowRevivePrompt" } do
 	local remote = Instance.new("RemoteEvent")
 	remote.Name = name
 	remote.Parent = remotes
@@ -54,7 +54,8 @@ if muralPart then
 end
 
 -- Easter egg: tocar na SecretPotato do lobby concede a badge SECRET
-local secretPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("SecretPotato")
+local mapFolder = workspace:FindFirstChild("Map")
+local secretPart = mapFolder and mapFolder:FindFirstChild("SecretPotato")
 if secretPart and secretPart:IsA("BasePart") then
 	secretPart.Touched:Connect(function(hit)
 		local character = hit and hit:FindFirstAncestorOfClass("Model")
@@ -64,6 +65,82 @@ if secretPart and secretPart:IsA("BasePart") then
 		end
 	end)
 end
+
+-- Portal VIP: VIP teleporta pra sala dourada; não-VIP recebe prompt de compra
+local vipPortal = mapFolder and mapFolder:FindFirstChild("VIPPortal")
+local vipExit = mapFolder and mapFolder:FindFirstChild("VIPExitPortal")
+local vipCoin = mapFolder and mapFolder:FindFirstChild("VIPCoin")
+local vipCenter = mapFolder and mapFolder:GetAttribute("VIPCenter")
+local portalCooldown: { [Player]: number } = {}
+
+local function teleportCharacter(player: Player, target: Vector3)
+	local character = player.Character
+	if not character then
+		return
+	end
+	character:PivotTo(CFrame.new(target + Vector3.new(0, 4, 0)))
+end
+
+if vipPortal and vipPortal:IsA("BasePart") then
+	vipPortal.Touched:Connect(function(hit)
+		local character = hit and hit:FindFirstAncestorOfClass("Model")
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if not player then
+			return
+		end
+		local now = os.clock()
+		if (portalCooldown[player] or 0) > now then
+			return
+		end
+		portalCooldown[player] = now + 2
+		if Monetization.hasVIP(player) and typeof(vipCenter) == "Vector3" then
+			teleportCharacter(player, vipCenter)
+			remotes.Notify:FireClient(player, "⭐ Bem-vindo à sala VIP!")
+		else
+			remotes.Notify:FireClient(player, "⭐ Precisa do passe VIP pra entrar.")
+			Monetization.promptPurchaseGamePass(player, "VIP")
+		end
+	end)
+end
+
+if vipExit and vipExit:IsA("BasePart") then
+	vipExit.Touched:Connect(function(hit)
+		local character = hit and hit:FindFirstAncestorOfClass("Model")
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if not player then
+			return
+		end
+		local now = os.clock()
+		if (portalCooldown[player] or 0) > now then
+			return
+		end
+		portalCooldown[player] = now + 2
+		teleportCharacter(player, Config.LOBBY_CENTER + Vector3.new(0, 1, 0))
+	end)
+end
+
+-- Cofrinho VIP: 1 moeda a cada 5s por VIP tocando. Cooldown por jogador.
+if vipCoin and vipCoin:IsA("BasePart") then
+	local lastCoin: { [Player]: number } = {}
+	vipCoin.Touched:Connect(function(hit)
+		local character = hit and hit:FindFirstAncestorOfClass("Model")
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if not player or not Monetization.hasVIP(player) then
+			return
+		end
+		local now = os.clock()
+		if (lastCoin[player] or 0) + 5 > now then
+			return
+		end
+		lastCoin[player] = now
+		PlayerData.addCoinsRaw(player, 1)
+		remotes.Notify:FireClient(player, "💰 +1 moeda VIP")
+	end)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	portalCooldown[player] = nil
+end)
 
 -- Remote pro cliente pedir pra abrir o prompt de convite
 local inviteRemote = Instance.new("RemoteEvent")
@@ -89,6 +166,8 @@ local lastPass = 0
 local roundActive = false
 local roundStartClock = 0
 local shrinkNoticeGiven = false
+local recentlyEliminated: { [Player]: number } = {} -- player -> os.clock() na eliminação
+local boostedThisRound: { [Player]: boolean } = {}
 
 local POTATO_COLOR = Color3.fromRGB(181, 130, 70)
 local DANGER_COLOR = Color3.fromRGB(255, 40, 40)
@@ -210,7 +289,7 @@ local function passBomb(from: Player, to: Player)
 	end
 	lastPass = os.clock()
 	setHolder(to)
-	PlayerData.addCoins(from, Config.COINS_PASS)
+	awardCoins(from, Config.COINS_PASS)
 	Badges.onPotatoPass(from)
 	remotes.Notify:FireClient(to, "🥔 A batata é sua! Passa pra frente!")
 end
@@ -220,7 +299,14 @@ local function eliminate(player: Player, reason: string)
 		return
 	end
 	alive[player] = nil
+	recentlyEliminated[player] = os.clock()
 	notifyAll(player.DisplayName .. " " .. reason)
+
+	-- Oferece revive ao próprio jogador se o produto estiver configurado
+	local reviveId = Config.DEV_PRODUCTS.REVIVE_ROUND
+	if reviveId ~= 0 and remotes:FindFirstChild("ShowRevivePrompt") then
+		remotes.ShowRevivePrompt:FireClient(player, Config.REVIVE_WINDOW)
+	end
 
 	if player == holder then
 		setHolder(randomAlive())
@@ -231,6 +317,62 @@ local function eliminate(player: Player, reason: string)
 			player:LoadCharacter()
 		end
 	end)
+end
+
+local function tryRevive(player: Player): boolean
+	if not roundActive then
+		return false
+	end
+	local t = recentlyEliminated[player]
+	if not t or os.clock() - t > Config.REVIVE_WINDOW then
+		return false
+	end
+	if alive[player] then
+		return false
+	end
+	recentlyEliminated[player] = nil
+	alive[player] = true
+	notifyAll("🔁 " .. player.DisplayName .. " voltou pra rodada!")
+	task.spawn(function()
+		-- Garante um personagem vivo antes de teletransportar
+		if not player.Character or not player.Character:FindFirstChildOfClass("Humanoid") then
+			player:LoadCharacter()
+			player.CharacterAdded:Wait()
+		end
+		task.wait(0.5)
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if character and humanoid and humanoid.Health > 0 and currentArena then
+			Ragdoll.disable(character)
+			local spawnCFrame = currentArena.spawns[math.random(1, #currentArena.spawns)]
+			character:PivotTo(spawnCFrame)
+		end
+	end)
+	return true
+end
+
+local function tryCoinBoost(player: Player): boolean
+	if not roundActive then
+		return false
+	end
+	if not alive[player] then
+		return false
+	end
+	boostedThisRound[player] = true
+	if remotes:FindFirstChild("Notify") then
+		remotes.Notify:FireClient(player, "⚡ 2x moedas até o fim da rodada!")
+	end
+	return true
+end
+
+-- Wrapper que aplica boost local antes de delegar pro PlayerData (que já
+-- aplica VIP). Não modificamos o PlayerData porque o boost é escopado à
+-- rodada em memória.
+local function awardCoins(player: Player, amount: number)
+	if boostedThisRound[player] and amount > 0 then
+		amount = amount * Config.COIN_BOOST_MULTIPLIER
+	end
+	PlayerData.addCoins(player, amount)
 end
 
 local function makeExplosionFX(center: Vector3, explosionPayload)
@@ -303,7 +445,7 @@ local function explode()
 	Badges.onExplode(victim)
 	eliminate(victim, "explodiu! 💥")
 	for player in alive do
-		PlayerData.addCoins(player, Config.COINS_SURVIVE)
+		awardCoins(player, Config.COINS_SURVIVE)
 	end
 end
 
@@ -350,6 +492,8 @@ end
 Monetization.init(remotes, {
 	notifyAll = notifyAll,
 	trollExplode = trollExplode,
+	revive = tryRevive,
+	coinBoost = tryCoinBoost,
 })
 
 Combat.onHit = function(attacker, victim)
@@ -482,6 +626,8 @@ local function runRound()
 	roundActive = true
 	roundStartClock = os.clock()
 	shrinkNoticeGiven = false
+	recentlyEliminated = {}
+	boostedThisRound = {}
 	ReplicatedStorage:SetAttribute("ArenaRadius", Config.ARENA_RADIUS)
 	setStatus("PREPARA... 🥔")
 	task.wait(3)
@@ -532,7 +678,7 @@ local function runRound()
 
 	local winner = next(alive)
 	if winner and startCount > 1 then
-		PlayerData.addCoins(winner, Config.COINS_WIN)
+		awardCoins(winner, Config.COINS_WIN)
 		PlayerData.addWin(winner)
 		Analytics.step(winner, "first_win")
 		Badges.onWin(winner)

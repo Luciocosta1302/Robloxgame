@@ -76,6 +76,14 @@ Config.DEV_PRODUCTS = {
 	-- Troll só visual: faz todo mundo cair no ragdoll por 2s. NÃO passa a batata,
 	-- NÃO conta para vitória, NÃO elimina ninguém. É só palhaçada pra clipe.
 	EXPLODE_EVERYONE = 0,
+
+	-- Volta pra rodada na próxima batata. NÃO conta vitórias das batatas que
+	-- o jogador perdeu antes. Só entra se a rodada ainda está ativa.
+	REVIVE_ROUND = 0,
+
+	-- 2x moedas ganhas pela rodada em andamento (passar batata + sobreviver).
+	-- Não dá nada além de moedas — moeda só compra cosmético, então sem p2w.
+	COIN_BOOST_ROUND = 0,
 }
 
 -- Quanto cada Developer Product entrega. O ProcessReceipt lê desta tabela.
@@ -85,7 +93,13 @@ Config.DEV_PRODUCT_REWARDS = {
 	[Config.DEV_PRODUCTS.COINS_MEDIUM] = { kind = "coins", amount = 1500 },
 	[Config.DEV_PRODUCTS.COINS_LARGE] = { kind = "coins", amount = 5000 },
 	[Config.DEV_PRODUCTS.EXPLODE_EVERYONE] = { kind = "troll_explode" },
+	[Config.DEV_PRODUCTS.REVIVE_ROUND] = { kind = "revive_round" },
+	[Config.DEV_PRODUCTS.COIN_BOOST_ROUND] = { kind = "coin_boost_round" },
 }
+
+-- Revive só é oferecido dentro dessa janela depois da eliminação (em segundos).
+Config.REVIVE_WINDOW = 12
+Config.COIN_BOOST_MULTIPLIER = 2
 
 -- ============================================================
 -- Catálogo da loja (compra com moedas do jogo). Sem pay-to-win:

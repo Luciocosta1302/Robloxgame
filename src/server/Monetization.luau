@@ -10,6 +10,8 @@ local Monetization = {}
 local remotes: Folder
 local notifyAllFn: ((text: string) -> ())? = nil
 local trollExplodeFn: ((player: Player) -> ())? = nil
+local reviveFn: ((player: Player) -> boolean)? = nil
+local coinBoostFn: ((player: Player) -> boolean)? = nil
 
 local ownsPassCache: { [number]: { [number]: boolean } } = {} -- [passId][userId] -> bool
 local gamePassRefresh: { [number]: boolean } = {}
@@ -77,6 +79,22 @@ local function grantProduct(player: Player, productId: number): Enum.ProductPurc
 			trollExplodeFn(player)
 		end
 		return Enum.ProductPurchaseDecision.PurchaseGranted
+	elseif reward.kind == "revive_round" then
+		-- Se o revive não puder ser aplicado (fora da janela, rodada acabou),
+		-- retornamos NotProcessedYet pra o Roblox devolver o Robux. Isso é
+		-- essencial: não cobrar pelo que não entrega.
+		if reviveFn and reviveFn(player) then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		if remotes and remotes:FindFirstChild("Notify") then
+			remotes.Notify:FireClient(player, "⚠️ Revive não pôde ser aplicado — tente na próxima rodada.")
+		end
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	elseif reward.kind == "coin_boost_round" then
+		if coinBoostFn and coinBoostFn(player) then
+			return Enum.ProductPurchaseDecision.PurchaseGranted
+		end
+		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
 	return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -152,11 +170,18 @@ function Monetization.getConfiguredPasses(): { [string]: number }
 	return out
 end
 
-function Monetization.init(remoteFolder: Folder, callbacks: { notifyAll: (string) -> ()?, trollExplode: (Player) -> ()? }?)
+function Monetization.init(remoteFolder: Folder, callbacks: {
+	notifyAll: (string) -> ()?,
+	trollExplode: (Player) -> ()?,
+	revive: (Player) -> boolean?,
+	coinBoost: (Player) -> boolean?,
+}?)
 	remotes = remoteFolder
 	if callbacks then
 		notifyAllFn = callbacks.notifyAll
 		trollExplodeFn = callbacks.trollExplode
+		reviveFn = callbacks.revive
+		coinBoostFn = callbacks.coinBoost
 	end
 
 	MarketplaceService.ProcessReceipt = processReceipt

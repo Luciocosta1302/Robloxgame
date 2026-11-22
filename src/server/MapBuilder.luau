@@ -87,6 +87,72 @@ local function buildLobby(map: Folder)
 	text.Text = "BATATA QUENTE\nRAGDOLL 🥔💥"
 	text.Parent = gui
 
+	-- ====================
+	-- Sala VIP: zona dourada afastada do lobby, acessível só por portal.
+	-- ====================
+	local vipCenter = c + Vector3.new(-120, 0, 0)
+	part({
+		Name = "VIPFloor",
+		Size = Vector3.new(60, 4, 60),
+		CFrame = CFrame.new(vipCenter - Vector3.new(0, 2, 0)),
+		Color = Color3.fromRGB(230, 180, 60),
+		Material = Enum.Material.Marble,
+		Parent = map,
+	})
+	for i = 0, 3 do
+		part({
+			Name = "VIPWall",
+			Size = Vector3.new(60, 10, 1.5),
+			CFrame = CFrame.new(vipCenter) * CFrame.Angles(0, i * math.pi / 2, 0) * CFrame.new(0, 5, 30),
+			Color = Color3.fromRGB(255, 220, 80),
+			Material = Enum.Material.Neon,
+			Transparency = 0.5,
+			Parent = map,
+		})
+	end
+	part({
+		Name = "VIPSign",
+		Size = Vector3.new(30, 8, 1),
+		CFrame = CFrame.new(vipCenter + Vector3.new(0, 10, -29)),
+		Color = Color3.fromRGB(80, 60, 20),
+		Parent = map,
+	})
+	-- Mini cofrinho clicável (lógica no servidor via Touched)
+	part({
+		Name = "VIPCoin",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1, 4, 4),
+		CFrame = CFrame.new(vipCenter + Vector3.new(0, 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(255, 220, 80),
+		Material = Enum.Material.Neon,
+		Parent = map,
+	})
+
+	-- Portal no lobby pra sala VIP (parte com Touched conectada no Main)
+	part({
+		Name = "VIPPortal",
+		Size = Vector3.new(6, 8, 6),
+		CFrame = CFrame.new(c + Vector3.new(-30, 4, 0)),
+		Color = Color3.fromRGB(255, 220, 80),
+		Material = Enum.Material.Neon,
+		Transparency = 0.4,
+		Parent = map,
+	}).CanCollide = false
+
+	-- Guarda o centro da sala VIP num atributo pra o Main ler sem acoplar.
+	map:SetAttribute("VIPCenter", vipCenter)
+
+	-- Portal de volta da sala VIP pro lobby
+	part({
+		Name = "VIPExitPortal",
+		Size = Vector3.new(6, 8, 6),
+		CFrame = CFrame.new(vipCenter + Vector3.new(26, 4, 0)),
+		Color = Color3.fromRGB(100, 170, 255),
+		Material = Enum.Material.Neon,
+		Transparency = 0.4,
+		Parent = map,
+	}).CanCollide = false
+
 	-- Easter egg (badge SECRET): batata dourada minúscula atrás do letreiro.
 	local secret = part({
 		Name = "SecretPotato",
