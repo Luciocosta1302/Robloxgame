@@ -21,6 +21,7 @@ type Data = {
 	processedReceipts: { [string]: number },
 	lastRewardedAd: number,
 	welcomeGranted: boolean,
+	referrals: { [string]: true },
 }
 
 local cache: { [Player]: Data } = {}
@@ -39,6 +40,7 @@ local function defaults(): Data
 		processedReceipts = {},
 		lastRewardedAd = 0,
 		welcomeGranted = false,
+		referrals = {},
 	}
 end
 
@@ -84,6 +86,13 @@ local function merge(saved: any): Data
 	end
 	data.lastRewardedAd = tonumber(saved.lastRewardedAd) or 0
 	data.welcomeGranted = saved.welcomeGranted == true
+	if type(saved.referrals) == "table" then
+		for k in saved.referrals do
+			if type(k) == "string" then
+				data.referrals[k] = true
+			end
+		end
+	end
 	return data
 end
 

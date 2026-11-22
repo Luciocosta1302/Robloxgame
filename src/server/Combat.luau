@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Ragdoll = require(ReplicatedStorage.Shared.Ragdoll)
 local Animations = require(ReplicatedStorage.Shared.Animations)
+local SoundPlay = require(ReplicatedStorage.Shared.SoundPlay)
 
 local Combat = {}
 Combat.onHit = nil :: ((attacker: Player, victim: Player) -> ())?
@@ -75,6 +76,7 @@ local function onDash(player: Player)
 	lastDash[player] = now
 
 	pcall(Animations.play, character, "PUSH", { priority = Enum.AnimationPriority.Action2, fade = 0.05 })
+	SoundPlay.on(character, "WHOOSH", 0.7)
 
 	local hit = {}
 	local connection

@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Ragdoll = require(Shared.Ragdoll)
 local Animations = require(Shared.Animations)
+local SoundPlay = require(Shared.SoundPlay)
 
 local MapBuilder = require(script.Parent.MapBuilder)
 local PlayerData = require(script.Parent.PlayerData)
@@ -16,6 +17,7 @@ local Cosmetics = require(script.Parent.Cosmetics)
 local DailyReward = require(script.Parent.DailyReward)
 local RewardedAds = require(script.Parent.RewardedAds)
 local Analytics = require(script.Parent.Analytics)
+local Referrals = require(script.Parent.Referrals)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -33,6 +35,15 @@ Shop.init(remotes)
 DailyReward.init(remotes)
 RewardedAds.init(remotes)
 Analytics.init()
+Referrals.init(remotes)
+
+-- Remote pro cliente pedir pra abrir o prompt de convite
+local inviteRemote = Instance.new("RemoteEvent")
+inviteRemote.Name = "RequestInvitePrompt"
+inviteRemote.Parent = remotes
+-- Nota: PromptGameInvite roda no cliente. O servidor não chama direto.
+-- Esse Remote existe só pra o cliente avisar de volta "cliquei em convidar"
+-- (analytics). O cliente chama Players:PromptGameInvite localmente.
 
 -- Remote pro cliente avisar que abriu a loja (funil passo 5). Shop.init já
 -- criou ShopBuy/Equip/Unequip/Catalog; esse é adicional.
@@ -102,6 +113,8 @@ local function createBomb()
 	light.Parent = potato
 
 	potato.Parent = workspace
+	-- tique em loop; a velocidade cresce conforme o pavio queima
+	SoundPlay.loopOn(potato, "TICK", 0.6)
 	return potato
 end
 
@@ -238,6 +251,7 @@ local function explode()
 		pcall(Animations.play, victim.Character, "EXPLODE", { priority = Enum.AnimationPriority.Action4, fade = 0 })
 	end
 	makeExplosionFX(center, explosionPayload)
+	SoundPlay.at(center, "EXPLOSION", 1)
 
 	for player in alive do
 		local root = Combat.getRoot(player)
@@ -427,14 +441,21 @@ local function runRound()
 				break
 			end
 			local progress = elapsed / fuse
+			ReplicatedStorage:SetAttribute("FuseProgress", progress)
 			local blinkSpeed = 2 + progress * 12
 			if bomb then
 				local baseColor = bomb:GetAttribute("CosmeticBase") or POTATO_COLOR
 				bomb.Color = if math.floor(elapsed * blinkSpeed) % 2 == 0 then DANGER_COLOR else baseColor
+				local tick = bomb:FindFirstChildOfClass("Sound")
+				if tick and tick.Looped then
+					tick.PlaybackSpeed = 0.8 + progress * 1.6
+					tick.Volume = 0.6 + progress * 0.4
+				end
 			end
 			setStatus(("🥔 %d vivos — não fica com a batata!"):format(countAlive()))
 			task.wait(0.05)
 		end
+		ReplicatedStorage:SetAttribute("FuseProgress", 0)
 
 		if holder and os.clock() - started >= fuse then
 			explode()
@@ -459,6 +480,7 @@ local function runRound()
 		notifyAll("🏆 " .. winner.DisplayName .. " sobreviveu à batata! +" .. Config.COINS_WIN .. " moedas")
 		if winner.Character then
 			pcall(Animations.play, winner.Character, "VICTORY", { priority = Enum.AnimationPriority.Action3 })
+			SoundPlay.on(winner.Character, "VICTORY", 1)
 		end
 	else
 		setStatus("Fim da rodada!")

@@ -2,7 +2,9 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local SoundPlay = require(Shared:WaitForChild("SoundPlay"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local playerGui = player:WaitForChild("PlayerGui")
@@ -259,6 +261,9 @@ local function makeCard(item)
 		if owned[item.id] then
 			remotes.ShopEquip:FireServer(item.id)
 		else
+			if getCoins() >= item.price then
+				SoundPlay.ui("BUY", 0.6)
+			end
 			remotes.ShopBuy:FireServer(item.id)
 		end
 	end)

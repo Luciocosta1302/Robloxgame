@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
+local SoundPlay = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SoundPlay"))
 
 local function make(className: string, props, parent: Instance?)
 	local item = Instance.new(className)
@@ -133,6 +134,14 @@ local adBtn = textButton({
 	Visible = false, -- só aparece se o servidor confirmar que tem ads
 }, sidebar)
 
+local inviteBtn = textButton({
+	Name = "InviteBtn",
+	Size = UDim2.new(0, 68, 0, 68),
+	Text = "🤝\nCHAMA",
+	LayoutOrder = 4,
+	BackgroundColor3 = Color3.fromRGB(200, 100, 200),
+}, sidebar)
+
 -- Notificação pisca-pisca no botão Diário quando pode resgatar
 local dailyBadge = make("Frame", {
 	Name = "Badge",
@@ -163,8 +172,13 @@ updateHolder()
 task.spawn(function()
 	local stats = player:WaitForChild("leaderstats")
 	local value = stats:WaitForChild("Moedas")
+	local lastValue = value.Value
 	local function refresh()
 		coins.Text = "🪙 " .. value.Value
+		if value.Value > lastValue then
+			SoundPlay.ui("COIN", 0.4)
+		end
+		lastValue = value.Value
 	end
 	value.Changed:Connect(refresh)
 	refresh()
@@ -212,6 +226,26 @@ end)
 
 adBtn.MouseButton1Click:Connect(function()
 	remotes.WatchAd:FireServer()
+end)
+
+inviteBtn.MouseButton1Click:Connect(function()
+	local ok, canSend = pcall(function()
+		return Players:CanSendGameInviteAsync(player)
+	end)
+	if ok and canSend then
+		pcall(function()
+			Players:PromptGameInvite(player)
+		end)
+	else
+		-- Dispara mesmo assim; o Roblox mostra a UI de convite se possível
+		pcall(function()
+			Players:PromptGameInvite(player)
+		end)
+	end
+	local requestRemote = remotes:FindFirstChild("RequestInvitePrompt")
+	if requestRemote then
+		requestRemote:FireServer()
+	end
 end)
 
 -- Atualiza badge do daily

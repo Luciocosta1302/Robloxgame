@@ -150,4 +150,7 @@ Config.DAILY_WINDOW_MAX = 48 * 3600   -- se passou de 48h, streak reseta
 Config.REWARDED_AD_COINS = 50
 Config.REWARDED_AD_COOLDOWN = 15 * 60  -- 15 min entre vídeos por jogador
 
+-- Convite de amigo (dica §4 do devlog BR)
+Config.REFERRAL_COINS = 200
+
 return Config
