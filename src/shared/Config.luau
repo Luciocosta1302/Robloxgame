@@ -153,4 +153,31 @@ Config.REWARDED_AD_COOLDOWN = 15 * 60  -- 15 min entre vídeos por jogador
 -- Convite de amigo (dica §4 do devlog BR)
 Config.REFERRAL_COINS = 200
 
+-- ============================================================
+-- Badges — criar em create.roblox.com/dashboard/creations → Badges.
+-- Custa 100 Robux cada; crie quando o jogo já tiver visitas. IDs ficam 0
+-- até você criar; AwardBadge no server é no-op se o id for 0.
+-- ============================================================
+Config.BADGES = {
+	FIRST_EXPLODE = 0,     -- primeira vez que explode
+	FIRST_WIN = 0,         -- primeira vitória
+	PASS_50 = 0,           -- passou a batata 50 vezes (acumulado)
+	SURVIVE_10 = 0,        -- sobreviveu a 10 rodadas (acumulado)
+	DASH_MASTER = 0,       -- 100 dashes que acertaram alguém
+	SECRET = 0,             -- easter egg: tocar no pilar escondido do lobby
+}
+
+-- ============================================================
+-- Códigos promocionais. Cada código é { coins = <int>, uses? = <int>,
+-- expires? = <timestamp Unix> }. Se `uses` for nil, é infinito.
+-- `expires` é segundos Unix (os.time() + N). Códigos são lowercased antes
+-- da comparação; o jogador pode digitar maiúsculo/minúsculo.
+-- ============================================================
+Config.CODES = {
+	launch   = { coins = 100, uses = 10000, expires = nil },
+	batata1k = { coins = 250, uses = 5000,  expires = nil },
+	tiktok   = { coins = 50,  uses = nil,   expires = nil },
+}
+Config.CODE_MAX_LENGTH = 32
+
 return Config

@@ -22,6 +22,12 @@ type Data = {
 	lastRewardedAd: number,
 	welcomeGranted: boolean,
 	referrals: { [string]: true },
+	potatoPasses: number,
+	successfulDashes: number,
+	roundsSurvived: number,
+	explodes: number,
+	badgesAwarded: { [string]: true },
+	codesClaimed: { [string]: true },
 }
 
 local cache: { [Player]: Data } = {}
@@ -41,6 +47,12 @@ local function defaults(): Data
 		lastRewardedAd = 0,
 		welcomeGranted = false,
 		referrals = {},
+		potatoPasses = 0,
+		successfulDashes = 0,
+		roundsSurvived = 0,
+		explodes = 0,
+		badgesAwarded = {},
+		codesClaimed = {},
 	}
 end
 
@@ -90,6 +102,24 @@ local function merge(saved: any): Data
 		for k in saved.referrals do
 			if type(k) == "string" then
 				data.referrals[k] = true
+			end
+		end
+	end
+	data.potatoPasses = tonumber(saved.potatoPasses) or 0
+	data.successfulDashes = tonumber(saved.successfulDashes) or 0
+	data.roundsSurvived = tonumber(saved.roundsSurvived) or 0
+	data.explodes = tonumber(saved.explodes) or 0
+	if type(saved.badgesAwarded) == "table" then
+		for k in saved.badgesAwarded do
+			if type(k) == "string" then
+				data.badgesAwarded[k] = true
+			end
+		end
+	end
+	if type(saved.codesClaimed) == "table" then
+		for k in saved.codesClaimed do
+			if type(k) == "string" then
+				data.codesClaimed[k] = true
 			end
 		end
 	end
@@ -277,6 +307,46 @@ function PlayerData.markReceiptProcessed(player: Player, receiptId: string)
 		return
 	end
 	data.processedReceipts[receiptId] = os.time()
+end
+
+function PlayerData.incStat(player: Player, key: string, amount: number?): number?
+	local data = cache[player]
+	if not data then
+		return nil
+	end
+	local inc = amount or 1
+	local current = (data :: any)[key]
+	if type(current) ~= "number" then
+		return nil
+	end
+	(data :: any)[key] = current + inc
+	return (data :: any)[key]
+end
+
+function PlayerData.hasBadge(player: Player, key: string): boolean
+	local data = cache[player]
+	return data ~= nil and data.badgesAwarded[key] == true
+end
+
+function PlayerData.markBadge(player: Player, key: string)
+	local data = cache[player]
+	if not data then
+		return
+	end
+	data.badgesAwarded[key] = true
+end
+
+function PlayerData.hasCode(player: Player, code: string): boolean
+	local data = cache[player]
+	return data ~= nil and data.codesClaimed[code] == true
+end
+
+function PlayerData.markCode(player: Player, code: string)
+	local data = cache[player]
+	if not data then
+		return
+	end
+	data.codesClaimed[code] = true
 end
 
 -- Entrega o bônus de boas-vindas uma única vez por conta (dica §2 do devlog BR).

@@ -18,6 +18,8 @@ local DailyReward = require(script.Parent.DailyReward)
 local RewardedAds = require(script.Parent.RewardedAds)
 local Analytics = require(script.Parent.Analytics)
 local Referrals = require(script.Parent.Referrals)
+local Badges = require(script.Parent.Badges)
+local Codes = require(script.Parent.Codes)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -28,7 +30,8 @@ for _, name in { "Dash", "Ragdoll", "Notify" } do
 end
 remotes.Parent = ReplicatedStorage
 
-local map = MapBuilder.build()
+MapBuilder.build()
+local currentArena = MapBuilder.buildArena()
 PlayerData.init()
 Combat.init(remotes)
 Shop.init(remotes)
@@ -36,6 +39,20 @@ DailyReward.init(remotes)
 RewardedAds.init(remotes)
 Analytics.init()
 Referrals.init(remotes)
+Badges.init(remotes)
+Codes.init(remotes)
+
+-- Easter egg: tocar na SecretPotato do lobby concede a badge SECRET
+local secretPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("SecretPotato")
+if secretPart and secretPart:IsA("BasePart") then
+	secretPart.Touched:Connect(function(hit)
+		local character = hit and hit:FindFirstAncestorOfClass("Model")
+		local player = character and Players:GetPlayerFromCharacter(character)
+		if player then
+			Badges.onSecret(player)
+		end
+	end)
+end
 
 -- Remote pro cliente pedir pra abrir o prompt de convite
 local inviteRemote = Instance.new("RemoteEvent")
@@ -181,6 +198,7 @@ local function passBomb(from: Player, to: Player)
 	lastPass = os.clock()
 	setHolder(to)
 	PlayerData.addCoins(from, Config.COINS_PASS)
+	Badges.onPotatoPass(from)
 	remotes.Notify:FireClient(to, "🥔 A batata é sua! Passa pra frente!")
 end
 
@@ -269,6 +287,7 @@ local function explode()
 	end
 
 	setHolder(nil)
+	Badges.onExplode(victim)
 	eliminate(victim, "explodiu! 💥")
 	for player in alive do
 		PlayerData.addCoins(player, Config.COINS_SURVIVE)
@@ -321,6 +340,7 @@ Monetization.init(remotes, {
 })
 
 Combat.onHit = function(attacker, victim)
+	Badges.onDashHit(attacker)
 	if attacker == holder then
 		passBomb(attacker, victim)
 	end
@@ -402,13 +422,16 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 local function runRound()
+	currentArena = MapBuilder.buildArena()
+	notifyAll("🗺️ Arena: " .. currentArena.name:upper())
+
 	alive = {}
 	for i, player in Players:GetPlayers() do
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if character and humanoid and humanoid.Health > 0 then
 			Ragdoll.disable(character)
-			character:PivotTo(map.spawns[(i - 1) % #map.spawns + 1])
+			character:PivotTo(currentArena.spawns[(i - 1) % #currentArena.spawns + 1])
 			alive[player] = true
 		end
 	end
@@ -476,6 +499,7 @@ local function runRound()
 		PlayerData.addCoins(winner, Config.COINS_WIN)
 		PlayerData.addWin(winner)
 		Analytics.step(winner, "first_win")
+		Badges.onWin(winner)
 		setStatus("🏆 " .. winner.DisplayName .. " venceu!")
 		notifyAll("🏆 " .. winner.DisplayName .. " sobreviveu à batata! +" .. Config.COINS_WIN .. " moedas")
 		if winner.Character then
@@ -487,6 +511,9 @@ local function runRound()
 	end
 
 	local survivors = alive
+	for player in survivors do
+		Badges.onRoundSurvived(player)
+	end
 	alive = {}
 	task.delay(3, function()
 		for player in survivors do
