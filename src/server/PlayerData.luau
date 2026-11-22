@@ -28,6 +28,10 @@ type Data = {
 	explodes: number,
 	badgesAwarded: { [string]: true },
 	codesClaimed: { [string]: true },
+	questsDay: number,
+	questsPicked: { string },
+	questsBaseline: { [string]: number },
+	questsClaimed: { [string]: true },
 }
 
 local cache: { [Player]: Data } = {}
@@ -53,6 +57,10 @@ local function defaults(): Data
 		explodes = 0,
 		badgesAwarded = {},
 		codesClaimed = {},
+		questsDay = 0,
+		questsPicked = {},
+		questsBaseline = {},
+		questsClaimed = {},
 	}
 end
 
@@ -120,6 +128,28 @@ local function merge(saved: any): Data
 		for k in saved.codesClaimed do
 			if type(k) == "string" then
 				data.codesClaimed[k] = true
+			end
+		end
+	end
+	data.questsDay = tonumber(saved.questsDay) or 0
+	if type(saved.questsPicked) == "table" then
+		for _, k in saved.questsPicked do
+			if type(k) == "string" then
+				table.insert(data.questsPicked, k)
+			end
+		end
+	end
+	if type(saved.questsBaseline) == "table" then
+		for k, v in saved.questsBaseline do
+			if type(k) == "string" and type(v) == "number" then
+				data.questsBaseline[k] = v
+			end
+		end
+	end
+	if type(saved.questsClaimed) == "table" then
+		for k in saved.questsClaimed do
+			if type(k) == "string" then
+				data.questsClaimed[k] = true
 			end
 		end
 	end

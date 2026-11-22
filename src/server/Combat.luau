@@ -52,12 +52,20 @@ local function maxCharges(player: Player): number
 	return if Combat.hasDashDuplo(player) then Config.DASH_DUPLO_CHARGES else 1
 end
 
+local function currentCooldown(): number
+	local mul = ReplicatedStorage:GetAttribute("DashCooldownMul")
+	if type(mul) == "number" and mul > 0 then
+		return Config.DASH_COOLDOWN * mul
+	end
+	return Config.DASH_COOLDOWN
+end
+
 local function onDash(player: Player)
 	local now = os.clock()
 	local last = lastDash[player] or 0
 	local charges = dashCharges[player] or maxCharges(player)
 
-	if now - last >= Config.DASH_COOLDOWN then
+	if now - last >= currentCooldown() then
 		charges = maxCharges(player)
 	end
 

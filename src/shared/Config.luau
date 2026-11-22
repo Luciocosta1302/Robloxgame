@@ -178,6 +178,37 @@ Config.REWARDED_AD_COOLDOWN = 15 * 60  -- 15 min entre vídeos por jogador
 Config.REFERRAL_COINS = 200
 
 -- ============================================================
+-- Missões diárias. Cada jogador recebe QUESTS_PER_DAY missões aleatórias
+-- (sorteadas de Config.QUESTS). "stat" bate com um campo do PlayerData
+-- incrementado pelo gameplay. "target" é o delta desde o momento em que
+-- a missão foi sorteada (não o total histórico). Resetam junto com o
+-- daily reward (mesma janela de 20–48h).
+-- ============================================================
+Config.QUESTS_PER_DAY = 3
+Config.QUESTS = {
+	pass20 = { label = "Passe a batata 20 vezes",   target = 20, stat = "potatoPasses",     reward = 100 },
+	win3   = { label = "Vença 3 rodadas",            target = 3,  stat = "wins",             reward = 200 },
+	dash25 = { label = "Acerte 25 dashes",           target = 25, stat = "successfulDashes", reward = 150 },
+	survive5 = { label = "Sobreviva a 5 rodadas",   target = 5,  stat = "roundsSurvived",   reward = 120 },
+	explode3 = { label = "Exploda 3 vezes (eita)",   target = 3,  stat = "explodes",         reward = 60 },
+	pass5    = { label = "Passe a batata 5 vezes",   target = 5,  stat = "potatoPasses",     reward = 40 },
+}
+
+-- ============================================================
+-- Modificadores de rodada. Cada rodada tem ROUND_MODIFIER_CHANCE de
+-- aplicar UM modificador aleatório. Zera por rodada. Só visual + stats,
+-- sem p2w.
+-- ============================================================
+Config.ROUND_MODIFIER_CHANCE = 0.35
+Config.ROUND_MODIFIERS = {
+	rush      = { label = "⚡ RUSH: pavio curto", fuseMul = 0.5 },
+	turbo     = { label = "🏃 TURBO: todo mundo corre mais", speedMul = 1.5 },
+	lowgrav   = { label = "🌙 GRAVIDADE BAIXA", gravityMul = 0.55 },
+	dash_spam = { label = "💨 DASH SEM ESPERA", dashCooldownMul = 0.2 },
+	fat_pot   = { label = "🥔 BATATONA: explosão gigante", blastMul = 1.6 },
+}
+
+-- ============================================================
 -- Badges — criar em create.roblox.com/dashboard/creations → Badges.
 -- Custa 100 Robux cada; crie quando o jogo já tiver visitas. IDs ficam 0
 -- até você criar; AwardBadge no server é no-op se o id for 0.

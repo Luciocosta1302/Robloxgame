@@ -105,6 +105,16 @@ local shrinkBadge = textLabel({
 	Visible = false,
 }, gui)
 
+local modifierBadge = textLabel({
+	Name = "ModifierBadge",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 96),
+	Size = UDim2.new(0, 300, 0, 28),
+	BackgroundColor3 = Color3.fromRGB(80, 60, 160),
+	Text = "",
+	Visible = false,
+}, gui)
+
 -- Barra lateral com botões
 local sidebar = make("Frame", {
 	Name = "Sidebar",
@@ -224,6 +234,19 @@ RunService.RenderStepped:Connect(function()
 		shrinkBadge.BackgroundTransparency = 0.1 + pulse * 0.3
 	else
 		shrinkBadge.Visible = false
+	end
+	-- modificador de rodada
+	local modKey = ReplicatedStorage:GetAttribute("RoundModifier")
+	if type(modKey) == "string" and modKey ~= "" then
+		local info = Config.ROUND_MODIFIERS[modKey]
+		if info then
+			modifierBadge.Visible = true
+			modifierBadge.Text = info.label
+		else
+			modifierBadge.Visible = false
+		end
+	else
+		modifierBadge.Visible = false
 	end
 end)
 

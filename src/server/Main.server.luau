@@ -21,6 +21,7 @@ local Referrals = require(script.Parent.Referrals)
 local Badges = require(script.Parent.Badges)
 local Codes = require(script.Parent.Codes)
 local Leaderboard = require(script.Parent.Leaderboard)
+local Quests = require(script.Parent.Quests)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -43,6 +44,7 @@ Referrals.init(remotes)
 Badges.init(remotes)
 Codes.init(remotes)
 Leaderboard.init()
+Quests.init(remotes)
 
 -- O Leaderboard atualiza o mural do lobby (SurfaceGui criado no MapBuilder)
 local muralPart = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("VictoryMural")
@@ -426,17 +428,21 @@ local function explode()
 	makeExplosionFX(center, explosionPayload)
 	SoundPlay.at(center, "EXPLOSION", 1)
 
+	local blastMul = (currentModifier and currentModifier.blastMul) or 1
+	local radius = Config.BLAST_RADIUS * blastMul
+	local force = Config.BLAST_FORCE * blastMul
+
 	for player in alive do
 		local root = Combat.getRoot(player)
 		if root then
 			local offset = root.Position - center
-			if offset.Magnitude < Config.BLAST_RADIUS then
+			if offset.Magnitude < radius then
 				local flat = Vector3.new(offset.X, 0, offset.Z)
 				if flat.Magnitude < 0.1 then
 					flat = Vector3.new(math.random() - 0.5, 0, math.random() - 0.5)
 				end
-				local force = flat.Unit * Config.BLAST_FORCE + Vector3.new(0, Config.BLAST_FORCE * 0.8, 0)
-				Combat.knock(player, force, player == victim)
+				local push = flat.Unit * force + Vector3.new(0, force * 0.8, 0)
+				Combat.knock(player, push, player == victim)
 			end
 		end
 	end
@@ -598,9 +604,73 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 end)
 
+local DEFAULT_GRAVITY = workspace.Gravity
+local currentModifier: any? = nil
+
+-- Escolhe (ou não) um modificador para a rodada e devolve o efeito aplicado.
+-- A limpeza é devolvida como uma função que o chamador executa no fim.
+local function pickRoundModifier(): (any?, () -> ())
+	if math.random() > Config.ROUND_MODIFIER_CHANCE then
+		ReplicatedStorage:SetAttribute("RoundModifier", "")
+		return nil, function() end
+	end
+	local keys = {}
+	for k in Config.ROUND_MODIFIERS do
+		table.insert(keys, k)
+	end
+	if #keys == 0 then
+		return nil, function() end
+	end
+	local chosen = keys[math.random(1, #keys)]
+	local mod = Config.ROUND_MODIFIERS[chosen]
+	currentModifier = mod
+	ReplicatedStorage:SetAttribute("RoundModifier", chosen)
+	ReplicatedStorage:SetAttribute("DashCooldownMul", mod.dashCooldownMul or 1)
+	notifyAll("🎲 " .. mod.label)
+
+	local restorers = {}
+	if mod.gravityMul then
+		workspace.Gravity = DEFAULT_GRAVITY * mod.gravityMul
+		table.insert(restorers, function()
+			workspace.Gravity = DEFAULT_GRAVITY
+		end)
+	end
+	if mod.speedMul then
+		for _, player in Players:GetPlayers() do
+			local character = player.Character
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid.WalkSpeed = humanoid.WalkSpeed * mod.speedMul
+			end
+		end
+		-- Também aplica em quem respawna durante a rodada
+		local charConn = Players.PlayerAdded:Connect(function(p)
+			p.CharacterAdded:Connect(function(char)
+				task.wait(0.2)
+				local h = char:FindFirstChildOfClass("Humanoid")
+				if h then
+					h.WalkSpeed = h.WalkSpeed * mod.speedMul
+				end
+			end)
+		end)
+		table.insert(restorers, function()
+			charConn:Disconnect()
+		end)
+	end
+	return mod, function()
+		for _, r in restorers do
+			pcall(r)
+		end
+		currentModifier = nil
+		ReplicatedStorage:SetAttribute("RoundModifier", "")
+		ReplicatedStorage:SetAttribute("DashCooldownMul", 1)
+	end
+end
+
 local function runRound()
 	currentArena = MapBuilder.buildArena()
 	notifyAll("🗺️ Arena: " .. currentArena.name:upper())
+	local roundMod, clearMod = pickRoundModifier()
 
 	alive = {}
 	for i, player in Players:GetPlayers() do
@@ -638,6 +708,9 @@ local function runRound()
 		setHolder(randomAlive())
 
 		local fuse = math.random(Config.FUSE_MIN, Config.FUSE_MAX)
+		if currentModifier and currentModifier.fuseMul then
+			fuse = fuse * currentModifier.fuseMul
+		end
 		local started = os.clock()
 
 		while holder and countAlive() > endAt do
@@ -675,6 +748,7 @@ local function runRound()
 
 	roundActive = false
 	clearBomb()
+	clearMod()
 
 	local winner = next(alive)
 	if winner and startCount > 1 then
@@ -696,6 +770,10 @@ local function runRound()
 	local survivors = alive
 	for player in survivors do
 		Badges.onRoundSurvived(player)
+		Quests.notify(player)
+	end
+	for _, player in Players:GetPlayers() do
+		Quests.notify(player)
 	end
 	alive = {}
 	task.delay(3, function()

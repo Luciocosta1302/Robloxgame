@@ -22,6 +22,14 @@ local function maxCharges(): number
 	return if player:GetAttribute("DashDuplo") then Config.DASH_DUPLO_CHARGES else 1
 end
 
+local function currentCooldown(): number
+	local mul = ReplicatedStorage:GetAttribute("DashCooldownMul")
+	if type(mul) == "number" and mul > 0 then
+		return Config.DASH_COOLDOWN * mul
+	end
+	return Config.DASH_COOLDOWN
+end
+
 local function dash(_, state)
 	if state ~= Enum.UserInputState.Begin then
 		return Enum.ContextActionResult.Pass
@@ -33,7 +41,7 @@ local function dash(_, state)
 	end
 
 	local now = os.clock()
-	if now - lastDashTime >= Config.DASH_COOLDOWN then
+	if now - lastDashTime >= currentCooldown() then
 		dashCharges = maxCharges()
 	end
 	if dashCharges <= 0 then
