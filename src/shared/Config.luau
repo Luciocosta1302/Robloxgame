@@ -6,7 +6,13 @@ local Config = {}
 -- Jogabilidade
 -- ============================================================
 Config.MIN_PLAYERS = if RunService:IsStudio() then 1 else 2
-Config.INTERMISSION = 15
+-- 10s em produção (era 15s). Dica do devlog BR "Lancei meu jogo há 3 dias":
+-- respeite o tempo do jogador. Ver docs/pesquisa/licoes-lancamento-br.md §3.
+Config.INTERMISSION = 10
+
+-- Bônus de boas-vindas (dica §2: torne o início acessível).
+Config.WELCOME_COINS = 150
+Config.WELCOME_COSMETIC = "trail_fogo"
 
 Config.FUSE_MIN = 10
 Config.FUSE_MAX = 18

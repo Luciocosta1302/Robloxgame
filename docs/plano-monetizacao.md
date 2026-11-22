@@ -11,6 +11,10 @@ para gastar em cosmético. Quem paga nunca ganha rodada só por pagar.
 
 Baseado nas pesquisas em `docs/pesquisa/` — leia-as antes de mudar qualquer coisa.
 
+**Lições de lançamento** de um dev BR que acabou de passar pelos primeiros
+3 dias: `docs/pesquisa/licoes-lancamento-br.md`. Recomendo ler antes do
+Passo 2.
+
 ---
 
 ## Passo 1 — Criar os assets no Creator Hub e colar os IDs
@@ -54,7 +58,11 @@ Depois do passo 1, 90% da monetização que já está no código começa a apare
 
 ---
 
-## Passo 2 — Sons + câmera tremendo + tremor na UI (polir o "feel")
+## Passo 2 — Sons + câmera tremendo + tremor na UI (polir o "feel") + convite de amigo
+
+(O convite de amigo subiu do Passo 4 por recomendação de
+`docs/pesquisa/licoes-lancamento-br.md` §4: incentivar interação social desde
+o começo em vez de esperar.)
 
 Sem isso, o jogo não dá clipe pro TikTok. Com isso, cada explosão vira
 compartilhamento.
@@ -71,7 +79,12 @@ compartilhamento.
   no RenderStepped com intensidade proporcional ao progresso.
 - Partícula extra no `makeExplosionFX` mesmo sem explosão custom.
 
-Esforço: 1 tarde. Impacto no retention: alto.
+- **Convite de amigo**: `Players:PromptGameInvite(player)` + ler
+  `GetJoinData().ReferredByPlayerId`. Botão "CONVIDAR" no HUD. +200 moedas
+  para os dois quando um convite vira entrada, guarda em
+  `PlayerData.referrals` pra não dar duas vezes.
+
+Esforço: 1 tarde (polimento) + 1 tarde (convite). Impacto no retention: alto.
 
 ---
 
@@ -109,16 +122,11 @@ de likes).
 
 ---
 
-## Passo 4 — Convite de amigo + leaderboard global
+## Passo 4 — Leaderboard global + mural de vitórias
 
-K-factor quase de graça (`docs/pesquisa/classicos-roblox.md`).
+(O convite de amigo foi pro Passo 2 por recomendação de
+`docs/pesquisa/licoes-lancamento-br.md` §4.)
 
-- **Convite de amigo**: o Roblox já tem a API oficial
-  `Players:PromptGameInvite(player)` e `GetJoinData().ReferredByPlayerId`
-  desde 2025. No servidor:
-  - Quando um jogador entra com `ReferredByPlayerId`, dá +200 moedas pros dois
-    (uma vez por par, guarda em DataStore).
-  - Botão "CONVIDAR" no HUD que chama `PromptGameInvite`.
 - **Leaderboard global**: `OrderedDataStore` separado `BatataWinsOrdered_v1`,
   update a cada vitória. Painel global no lobby mostra top 100 com
   `GetSortedAsync`.
@@ -165,8 +173,12 @@ Em ordem de prioridade:
   badge cronometrada.
 - **Subscription** mensal (49 Robux/mês) com +300 moedas/dia e cor exclusiva no
   nome. Floor do Roblox é 49 R$/mês (`docs/pesquisa/monetizacao.md` §4).
-- **Anúncios** (Sponsored Experiences) só quando a retenção D1 passar de 20%.
-  Antes disso é jogar dinheiro fora.
+- **Anúncios** (Sponsored Experiences): seguindo a dica §7 do devlog BR,
+  rode uma campanha **de teste de 200 Robux** pra medir CTR do ícone antes
+  de qualquer outra coisa. Se CTR < 1 %, troca o ícone e tenta de novo.
+  Só depois do CTR OK + retenção D1 > 20 % escala pra R$ 50–100/dia.
+  **Nunca** compre Robux com reais pra anunciar seu próprio jogo — use só
+  Robux earned (dica §8).
 
 ## Regras obrigatórias que vão junto
 

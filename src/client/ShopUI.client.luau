@@ -288,10 +288,14 @@ end)
 
 -- Toggle do painel via BindableEvent do HUD
 local shopToggle = hud:WaitForChild("ShopToggle")
+local shopOpened = remotes:FindFirstChild("ShopOpened")
 shopToggle.Event:Connect(function()
 	gui.Enabled = not gui.Enabled
 	if gui.Enabled then
 		refreshAll()
+		if shopOpened then
+			shopOpened:FireServer()
+		end
 	end
 end)
 closeBtn.MouseButton1Click:Connect(function()

@@ -15,6 +15,7 @@ local Shop = require(script.Parent.Shop)
 local Cosmetics = require(script.Parent.Cosmetics)
 local DailyReward = require(script.Parent.DailyReward)
 local RewardedAds = require(script.Parent.RewardedAds)
+local Analytics = require(script.Parent.Analytics)
 
 local remotes = Instance.new("Folder")
 remotes.Name = "Remotes"
@@ -31,6 +32,16 @@ Combat.init(remotes)
 Shop.init(remotes)
 DailyReward.init(remotes)
 RewardedAds.init(remotes)
+Analytics.init()
+
+-- Remote pro cliente avisar que abriu a loja (funil passo 5). Shop.init já
+-- criou ShopBuy/Equip/Unequip/Catalog; esse é adicional.
+local shopOpened = Instance.new("RemoteEvent")
+shopOpened.Name = "ShopOpened"
+shopOpened.Parent = remotes
+shopOpened.OnServerEvent:Connect(function(player)
+	Analytics.step(player, "opened_shop")
+end)
 
 local alive: { [Player]: boolean } = {}
 local holder: Player? = nil
@@ -334,9 +345,22 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-Players.PlayerAdded:Connect(function(player)
+local function onPlayerAdded(player: Player)
+	Analytics.step(player, "joined")
+	-- Bônus de boas-vindas: espera o PlayerData carregar.
+	task.delay(1.5, function()
+		if not player.Parent then
+			return
+		end
+		if PlayerData.tryGrantWelcome(player) then
+			remotes.Notify:FireClient(
+				player,
+				("🎉 Bem-vindo! +%d moedas e uma trilha grátis — abre a 🛒 loja!"):format(Config.WELCOME_COINS)
+			)
+		end
+	end)
+
 	player.CharacterAdded:Connect(function(character)
-		-- aplica cosméticos quando o personagem está pronto
 		local humanoid = character:WaitForChild("Humanoid", 5)
 		if humanoid then
 			character:WaitForChild("HumanoidRootPart", 5)
@@ -344,9 +368,11 @@ Players.PlayerAdded:Connect(function(player)
 			Cosmetics.applyToCharacter(player, character, Monetization.hasVIP(player))
 		end
 	end)
-end)
+end
 
+Players.PlayerAdded:Connect(onPlayerAdded)
 for _, player in Players:GetPlayers() do
+	onPlayerAdded(player)
 	if player.Character then
 		Cosmetics.applyToCharacter(player, player.Character, Monetization.hasVIP(player))
 	end
@@ -378,6 +404,10 @@ local function runRound()
 		return
 	end
 	local endAt = if startCount > 1 then 1 else 0
+
+	for player in alive do
+		Analytics.step(player, "saw_first_round")
+	end
 
 	roundActive = true
 	setStatus("PREPARA... 🥔")
@@ -424,6 +454,7 @@ local function runRound()
 	if winner and startCount > 1 then
 		PlayerData.addCoins(winner, Config.COINS_WIN)
 		PlayerData.addWin(winner)
+		Analytics.step(winner, "first_win")
 		setStatus("🏆 " .. winner.DisplayName .. " venceu!")
 		notifyAll("🏆 " .. winner.DisplayName .. " sobreviveu à batata! +" .. Config.COINS_WIN .. " moedas")
 		if winner.Character then

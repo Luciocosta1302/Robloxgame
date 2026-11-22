@@ -15,6 +15,7 @@ Sete relatórios em `docs/pesquisa/`, cada afirmação com link:
 | `monetizacao.md` | 542 | **O doc mais importante.** 12 seções: Game Pass, Dev Product, Private Servers, Subscriptions, Creator Rewards (substituiu Premium Payouts em jul/2025), Rewarded Ads, Ads Manager, UGC Marketplace, Commerce, **DevEx no Brasil** (Carnê-Leão, por que MEI não serve, não há tratado BR-EUA), regras obrigatórias (odds disclosure, Brasil na lista desde mai/2026). Tabela final por fonte de renda. |
 | `steam-oportunidades.md` | 409 | 15 candidatos Steam mai–nov/2026. Top 3 escolhidos e redesenhados com temática brasileira (folclore/meme): *"Senhor, Temos um Problema de Saci"*, *"Desce a Ladeira!"*, *"Treta no Sacolão do Zé"*. Cada um com design completo e MVP de 2–3 semanas. |
 | `classicos-roblox.md` | 316 | 12 clássicos (emotes, easter eggs, loja in-round, códigos, badges, daily, grupo/VIP, pets/rebirth, eventos, leaderboard global, música sem copyright, avatar). Descoberta-chave: **Admin War** foi o gancho de engajamento de 2025 (47,4 M CCU). Tabela de prioridade + esforço. |
+| `licoes-lancamento-br.md` | — | 9 dicas do devlog "Lancei meu jogo há 3 dias — olha os números" (dev de *Rouba o Ovo do Gigante*). Funil de retenção, início acessível, respeitar tempo, incentivar social, mobile first, hype > gráficos, testar anúncios com valor baixo, cuidado com conversão de Robux, ser criador de conteúdo. **Já aplicado parcialmente no código** — ver abaixo. |
 
 ## O que foi implementado no código
 
@@ -44,6 +45,18 @@ Mudanças em `src/` (tudo respeitando o CLAUDE.md: servidor é autoridade, `Conf
 - `DailyUI.client.luau` (novo) — 7 dias com destaque do streak, contador até o próximo resgate.
 
 **Skill do projeto**: `.claude/skills/roblox-dev/SKILL.md` com 11 regras (autoridade do servidor, Config.luau, sem IDs inventados, validação de Remote, APIs atuais, checklist final).
+
+**Lições do devlog BR aplicadas**:
+- `Analytics.luau` novo — funil de 5 passos (`joined` / `saw_first_round` /
+  `first_win` / `opened_shop` / etc.) via `AnalyticsService:LogFunnelStepEvent`.
+  No Creator Hub, Analytics → Funnels → criar `onboarding_v1` com esses passos.
+- `Config.INTERMISSION` caiu de 15 s pra **10 s** (dica §3 — respeite o tempo).
+- `Config.WELCOME_COINS = 150` + `trail_fogo` grátis na 1ª entrada
+  (dica §2 — início acessível). Gerenciado por `PlayerData.tryGrantWelcome`.
+- Botão de **ShopOpened** dispara o passo de funil ao abrir a loja.
+- `plano-monetizacao.md` reordenado: convite de amigo subiu pro Passo 2 e
+  a dica de "200 Robux de teste pra medir CTR do ícone antes de escalar"
+  entrou na seção de anúncios.
 
 **Plano**: `docs/plano-monetizacao.md` com as 5 próximas tarefas em ordem, com preços sugeridos e estimativa de esforço/impacto.
 

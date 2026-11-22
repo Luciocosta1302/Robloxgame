@@ -20,6 +20,7 @@ type Data = {
 	lastDailyClaim: number,
 	processedReceipts: { [string]: number },
 	lastRewardedAd: number,
+	welcomeGranted: boolean,
 }
 
 local cache: { [Player]: Data } = {}
@@ -37,6 +38,7 @@ local function defaults(): Data
 		lastDailyClaim = 0,
 		processedReceipts = {},
 		lastRewardedAd = 0,
+		welcomeGranted = false,
 	}
 end
 
@@ -81,6 +83,7 @@ local function merge(saved: any): Data
 		data.processedReceipts = pr
 	end
 	data.lastRewardedAd = tonumber(saved.lastRewardedAd) or 0
+	data.welcomeGranted = saved.welcomeGranted == true
 	return data
 end
 
@@ -265,6 +268,24 @@ function PlayerData.markReceiptProcessed(player: Player, receiptId: string)
 		return
 	end
 	data.processedReceipts[receiptId] = os.time()
+end
+
+-- Entrega o bônus de boas-vindas uma única vez por conta (dica §2 do devlog BR).
+-- Retorna true se concedeu agora, false se já tinha concedido antes.
+function PlayerData.tryGrantWelcome(player: Player): boolean
+	local data = cache[player]
+	if not data or data.welcomeGranted then
+		return false
+	end
+	data.welcomeGranted = true
+	data.coins += Config.WELCOME_COINS
+	if Config.WELCOME_COSMETIC and Config.WELCOME_COSMETIC ~= "" then
+		data.cosmetics[Config.WELCOME_COSMETIC] = true
+	end
+	syncLeaderstatCoins(player)
+	fireCoins(player)
+	fireData(player)
+	return true
 end
 
 function PlayerData.tryClaimDaily(player: Player): (boolean, number, number)
